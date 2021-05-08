@@ -17,8 +17,45 @@
  *  ]
  */
 function createCompassPoints() {
-    throw new Error('Not implemented');
-    var sides = ['N','E','S','W'];  // use array of cardinal directions only!
+    const sides = ['N', 'E', 'S', 'W'];  // use array of cardinal directions only!
+    const points = [];
+
+    const symbolOne = (i) => sides[Math.floor(i / 8) % 4];
+    const symbolTwo = (i) => sides[(Math.floor(((i + 8) / 16)) % 2 * 2) % 4] + sides[(Math.floor(i / 16) * 2 + 1) % 4];
+    const symbolThree = (i) => symbolOne(i + 2) + symbolTwo(i);
+    const symbolFour = (i) => {
+        let name = '';
+        if ((i % 8) === 1) {
+            name += symbolOne(i);
+        } else if ((i % 8) === 7) {
+            name += symbolOne(i + 8);
+        } else {
+            name += symbolTwo(i + 1);
+        }
+        name += 'b';
+        name += (i % 4 === 1) ? symbolOne(i + 8) : symbolOne(i);
+        return name;
+    }
+
+    const getAbbreviation = (i) => {
+        if (i % 8 === 0) {
+            return symbolOne(i);
+        }
+        if (i % 4 === 0) {
+            return symbolTwo(i);
+        }
+        if (i % 2 === 0) {
+            return symbolThree(i);
+        }
+        return symbolFour(i);
+    }
+
+    for(let i = 0, az = 0; i < 32; i++, az += 11.25){
+        const abbreviation = getAbbreviation(i);
+        points.push({ abbreviation, azimuth: az });
+    }
+
+    return points;
 }
 
 
@@ -56,7 +93,25 @@ function createCompassPoints() {
  *   'nothing to do' => 'nothing to do'
  */
 function* expandBraces(str) {
-    throw new Error('Not implemented');
+    let items = [str];
+    let isBracesLeft = true;
+    while (isBracesLeft) {
+        isBracesLeft = false;
+        for (let i = 0; i < items.length; i++) {
+            if (/{[^{}]+}/g.test(items[i])) {
+                isBracesLeft = true;
+                const inBracesContent = items[i].match(/{([^{}]+)}/);
+                const substitutes = inBracesContent[1].split(',');
+                const newItems = substitutes.map(substitute => items[i].replace(inBracesContent[0], substitute));
+                items.splice(i, 1, ...newItems);
+                items = items.filter((value, index, self) => self.indexOf(value) === index);
+            }
+        }
+    }
+
+    for (let i = 0; i < items.length; i++) {
+        yield items[i];
+    }
 }
 
 
@@ -88,7 +143,46 @@ function* expandBraces(str) {
  *
  */
 function getZigZagMatrix(n) {
-    throw new Error('Not implemented');
+    const arr = new Array(n).fill([]).map(() => new Array(n).fill(0));
+
+    const getDiagonals = () => {
+        const d = [];
+        let num = 0;
+        let index = 0;
+        while (index < n) {
+            d.push(new Array(index + 1).fill(0).map(() => num++));
+            index++
+        }
+        index--;
+        while (index > 0) {
+            d.push(new Array(index).fill(0).map(() => num++));
+            index--;
+        }
+        return d;
+    }
+
+    const fillDiagonal = (startIndex, items) => {
+        for (let i = 0; i < items.length; i++) {
+            arr[items.length - i  + startIndex - 1][i + startIndex] = items[i];
+        }
+    }
+
+    const diagonals = getDiagonals();
+
+    let startIndex = 0;
+    let isUp = true;
+    for (let i = 0; i < diagonals.length; i++) {
+        const d = i % 2 === 0 ? diagonals[i] : [].concat(diagonals[i]).reverse();
+        if (diagonals[i].length >= n) { // we have reached main diagonal
+            isUp = false;
+        }
+        fillDiagonal(startIndex, d);
+        if (!isUp) {
+            startIndex++;
+        }
+    }
+
+    return arr;
 }
 
 
